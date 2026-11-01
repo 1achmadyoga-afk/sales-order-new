@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sales Order Philips & Ecolink</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{--b:#1d4ed8;--g:#16a34a;--bg:#f3f5f9;--line:#e2e6ee;--mut:#6b7280}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.45 system-ui,Segoe UI,Arial,sans-serif;background:var(--bg);color:#1f2937}
+header{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;padding:8px 14px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.logo{font-weight:700;font-size:16px}.logo small{color:var(--mut);font-weight:400}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+nav button{border:0;background:transparent;padding:8px 12px;border-radius:8px;font:inherit;cursor:pointer;color:#374151}
+nav button.on{background:var(--b);color:#fff}
+main{max-width:1100px;margin:14px auto;padding:0 12px}
+.card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
+.card h3{margin:0 0 10px;font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+label{display:block;font-size:12px;color:var(--mut);margin-bottom:3px}
+input,select,textarea{width:100%;padding:8px;border:1px solid #cfd5df;border-radius:7px;font:inherit;background:#fff}
+.btn{border:1px solid #cfd5df;background:#fff;padding:8px 14px;border-radius:8px;font:inherit;cursor:pointer}
+.btn.p{background:var(--b);border-color:var(--b);color:#fff}
+.btn.g{background:#25d366;border-color:#25d366;color:#fff}
+.btn.d{background:#fff;border-color:#dc2626;color:#dc2626}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+th{font-size:12px;color:var(--mut);white-space:nowrap}
+td input{min-width:62px;padding:6px}
+.r{text-align:right}.muted{color:var(--mut);font-size:12px}
+.tag{font-size:11px;padding:1px 7px;border-radius:10px;color:#fff}
+.tag.p{background:var(--b)}.tag.e{background:var(--g)}
+.x{border:0;background:none;color:#dc2626;cursor:pointer;font-size:16px}
+.res{max-height:280px;overflow:auto;border:1px solid var(--line);border-radius:8px;margin-top:10px}
+.res div{padding:8px 10px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;justify-content:space-between;gap:10px}
+.res div:hover{background:#eef3ff}
+.tot{margin-left:auto;max-width:320px}
+.tot div{display:flex;justify-content:space-between;padding:3px 0}
+.tot .gt{font-weight:700;font-size:17px;border-top:2px solid #1f2937;margin-top:4px;padding-top:6px}
+.warn{background:#fff7ed;border:1px solid #fdba74;padding:10px;border-radius:8px;margin-bottom:12px}
+.chart{display:flex;align-items:flex-end;gap:6px;height:180px;padding:8px 0;border-bottom:1px solid var(--line)}
+.chart .col{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end}
+.chart .bars{display:flex;gap:2px;align-items:flex-end;height:calc(100% - 18px);width:100%;justify-content:center}
+.chart .bars i{display:block;width:40%;max-width:22px;border-radius:3px 3px 0 0;min-height:1px}
+.chart small{font-size:11px;color:var(--mut)}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 18px;border-radius:8px;opacity:0;transition:.3s;pointer-events:none;z-index:20}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">🧾 Sales Order <small>Philips &amp; Ecolink</small></div>
+  <nav id="nav">
+    <button data-p="order" class="on">Order Baru</button>
+    <button data-p="hist">Riwayat Order</button>
+    <button data-p="rep">Penjualan</button>
+    <button data-p="data">Data &amp; Pengaturan</button>
+  </nav>
+</header>
+<main>
+
+<!-- ORDER BARU -->
+<section id="p-order">
+  <div id="emptyWarn" class="warn" hidden>Database produk kosong. Import file Price Waterfall di menu <b>Data &amp; Pengaturan</b>.</div>
+  <div class="card">
+    <h3 id="orderTitle">Data Order</h3>
+    <div class="grid" id="orderInfo">
+      <div><label>No. Order</label><input id="f-no" readonly placeholder="Otomatis saat disimpan"></div>
+      <div><label>Tanggal</label><input type="date" id="f-date"></div>
+      <div><label>Nama Pelanggan / Toko *</label><input id="f-customer"></div>
+      <div><label>No. WhatsApp pelanggan</label><input id="f-phone" placeholder="08xxxxxxxxxx" inputmode="tel"></div>
+      <div><label>Alamat (opsional)</label><input id="f-address"></div>
+      <div><label>Jenis Harga</label>
+        <select id="f-type"><option value="toko">Harga ke Toko</option><option value="retail">Harga Retail</option></select></div>
+      <div><label>PPN %</label><input type="number" id="f-ppn" min="0" step="0.1"></div>
+      <div><label>Catatan</label><input id="f-note"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Pilih Produk</h3>
+    <div class="grid">
+      <div><label>Brand</label><select id="s-brand"><option value="">Semua (Philips &amp; Ecolink)</option><option>Philips</option><option>Ecolink</option></select></div>
+      <div><label>Kategori</label><select id="s-cat"><option value="">Semua kategori</option></select></div>
+      <div><label>Cari (12NC / kode / nama / barcode)</label><input id="s-q" placeholder="mis. MR16, 929001..., tube"></div>
+      <div><label>Diskon % default item baru</label><input type="number" id="s-d1" value="0" min="0" max="100" step="0.1"></div>
+      <div><label>Diskon tambahan % default</label><input type="number" id="s-d2" value="0" min="0" max="100" step="0.1"></div>
+    </div>
+    <div class="muted" id="s-hint" style="margin-top:6px"></div>
+    <div class="res" id="results"></div>
+  </div>
+
+  <div class="card">
+    <h3>Item Order</h3>
+    <div class="tw"><table>
+      <thead><tr><th>#</th><th>Produk</th><th class="r">Harga</th><th>Diskon %</th><th>Diskon Tambahan %</th><th>Qty</th><th class="r">Total</th><th></th></tr></thead>
+      <tbody id="items"></tbody>
+    </table></div>
+    <div class="tot" style="margin-top:12px">
+      <div><span>Subtotal</span><b id="t-sub">0</b></div>
+      <div><span>PPN</span><b id="t-ppn">0</b></div>
+      <div class="gt"><span>Total</span><span id="t-grand">0</span></div>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <button class="btn p" onclick="saveOrder()">💾 Simpan</button>
+      <button class="btn g" onclick="sendFromForm()">📲 Kirim ke WA</button>
+      <button class="btn" onclick="resetOrder()">Order Baru / Batal</button>
+      <button class="btn d" id="btnDel" onclick="deleteOrder(cur.id)" hidden>🗑 Hapus Order</button>
+    </div>
+  </div>
+</section>
+
+<!-- RIWAYAT -->
+<section id="p-hist" hidden>
+  <div class="card">
+    <div class="row">
+      <button class="btn p" onclick="exportXlsx()">⬇ Export Excel</button>
+      <button class="btn" onclick="exportJson()">⬇ Export JSON</button>
+      <label class="btn" style="margin:0;cursor:pointer">⬆ Import (Excel / JSON)<input type="file" id="h-imp" accept=".xlsx,.xls,.csv,.json" hidden></label>
+    </div>
+    <div class="muted" style="margin-top:6px">File Excel hasil export boleh diedit lalu di-import lagi. Order dengan No. Order yang sama akan diperbarui.</div>
+  </div>
+  <div class="card">
+    <div class="grid">
+      <div><label>Cari (no. order / pelanggan)</label><input id="h-q"></div>
+      <div><label>Bulan</label><input type="month" id="h-month"></div>
+      <div><label>Brand</label><select id="h-brand"><option value="">Semua</option><option>Philips</option><option>Ecolink</option></select></div>
+    </div>
+    <div class="tw" style="margin-top:10px"><table>
+      <thead><tr><th>No. Order</th><th>Tanggal</th><th>Pelanggan</th><th>Brand</th><th>Harga</th><th class="r">Item</th><th class="r">Total</th><th></th></tr></thead>
+      <tbody id="h-body"></tbody>
+    </table></div>
+    <div class="muted" id="h-sum" style="margin-top:8px"></div>
+  </div>
+</section>
+
+<!-- PENJUALAN -->
+<section id="p-rep" hidden>
+  <div class="card">
+    <div class="row"><div style="width:140px"><label>Tahun</label><select id="r-year"></select></div>
+      <div class="muted" style="flex:1">Nilai penjualan dihitung setelah diskon, sebelum PPN.</div></div>
+    <div class="chart" id="r-chart" style="margin-top:12px"></div>
+    <div class="row muted" style="margin-top:6px"><span><i class="tag p">&nbsp;</i> Philips</span><span><i class="tag e">&nbsp;</i> Ecolink</span></div>
+  </div>
+  <div class="card tw">
+    <table>
+      <thead><tr><th>Bulan</th><th class="r">Order</th><th class="r">Philips Qty</th><th class="r">Philips (Rp)</th><th class="r">Ecolink Qty</th><th class="r">Ecolink (Rp)</th><th class="r">Total (Rp)</th></tr></thead>
+      <tbody id="r-body"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- DATA & PENGATURAN -->
+<section id="p-data" hidden>
+  <div class="card">
+    <h3>Database Produk (Price Waterfall)</h3>
+    <div id="d-info" class="muted" style="margin-bottom:10px"></div>
+    <div class="row">
+      <label class="btn p" style="margin:0;cursor:pointer">⬆ Import Excel Price Waterfall<input type="file" id="d-imp" accept=".xlsx,.xls" hidden></label>
+      <label style="margin:0;display:flex;gap:6px;align-items:center;color:#1f2937;font-size:14px"><input type="checkbox" id="d-reprice" checked style="width:auto"> Perbarui harga di order yang sudah tersimpan</label>
+    </div>
+    <div class="muted" style="margin-top:6px">Database lama diganti seluruhnya oleh file baru. Harga, nama, dan kategori semua item ikut berubah. Kode produk dicocokkan lewat 12NC.</div>
+    <div class="tw" style="margin-top:10px"><table><thead><tr><th>Sheet</th><th>Brand</th><th class="r">Jumlah produk</th></tr></thead><tbody id="d-sheets"></tbody></table></div>
+  </div>
+
+  <div class="card">
+    <h3>Pengaturan</h3>
+    <div class="grid">
+      <div><label>Nama perusahaan (header pesan WA)</label><input id="c-company"></div>
+      <div><label>No. WA tujuan default (jika pelanggan kosong)</label><input id="c-wa" placeholder="08xxxxxxxxxx"></div>
+      <div><label>PPN default %</label><input type="number" id="c-ppn" min="0" step="0.1"></div>
+      <div><label>Markup harga retail untuk produk tanpa harga retail (%) – Ecolink</label><input type="number" id="c-eco" min="0" step="0.1"></div>
+      <div><label>Teks penutup pesan WA</label><input id="c-foot"></div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn p" onclick="saveSettings()">Simpan Pengaturan</button>
+      <button class="btn" onclick="exportJson()">⬇ Backup Semua Order</button>
+      <button class="btn d" onclick="clearOrders()">Hapus Semua Order</button>
+    </div>
+    <div class="muted" style="margin-top:6px">Data tersimpan di browser perangkat ini. Lakukan backup secara berkala.</div>
+  </div>
+
+  <div class="card">
+    <h3>Daftar Produk</h3>
+    <input id="d-q" placeholder="Cari produk..." style="max-width:360px">
+    <div class="tw" style="margin-top:10px"><table>
+      <thead><tr><th>Brand</th><th>12NC</th><th>Deskripsi</th><th>Kategori</th><th class="r">Harga Toko</th><th class="r">Harga Retail</th><th>Ket.</th></tr></thead>
+      <tbody id="d-prod"></tbody></table></div>
+    <div class="muted" id="d-cnt"></div>
+  </div>
+</section>
+</main>
+<div id="toast"></div>
+
+<script>
+/* ===== Util ===== */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt=n=>'Rp '+Math.round(n||0).toLocaleString('id-ID');
+const num=v=>{const n=parseFloat(v);return isNaN(n)?0:n};
+const MONTHS=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const todayStr=()=>{const d=new Date();return new Date(d-d.getTimezoneOffset()*60000).toISOString().slice(0,10)};
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),2600)}
+
+/* ===== Storage ===== */
+const LS={prod:'so_products',ord:'so_orders',set:'so_settings',meta:'so_meta'};
+const load=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}};
+const store=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v,(key,val)=>key==='_h'?undefined:val));return true}catch(e){alert('Penyimpanan browser penuh/gagal: '+e.message);return false}};
+
+const SAMPLE=[
+['Philips','Consumer','929002339108','929002339108','Essential LED 14-120W PAR38 827 25D',202920.3,225467,'6 PCE','LED BULB SPOTLIGHT'],
+['Philips','Consumer','929001239708','ES3MRWW24D','Essential LED 3-35W 2700K MR16 24D',52967.75,62315,'10 PCE','LED BULB SPOTLIGHT'],
+['Philips','Consumer','929002408437','929002408437','TForce Core HB 27W E27 865 GN3',136460.16,151622.4,'6 PCE','TFORCE LED BULB'],
+['Philips','OEM','913710032179','ETE10LEDCH','ET-E 10 220-240V',52700,62000,'48 PCE','LED TRANSFORMER'],
+['Philips','OEM','929003881680','ECOLT60WG2','Economic LED Transformer 60W 24VDC G2',205700,242000,'20 PCE','LED TRANSFORMER'],
+['Philips','Conventional','913713199015','EBC118TLD','EB-C 118 TL-D 220-240V 50/60Hz',106675,125500,'100 PCE','B54 eFluo Fix'],
+['Ecolink','ECO','929001874031','929001874031','Ecolink LED MR16 5W-50W 36D 3000K INDO',28297.5,null,'10 PCE','ECO'],
+['Ecolink','ECO','929003000699','929003000699','Ecolink HB MV 2.5Klm 25W 865 E27',52290,null,'6 PCE','ECO'],
+['Ecolink','ECO','929001277521','929001277521','Ecolink LEDtube 600mm 10W 765 T8 ID',26460,null,'20 PCE','ECO'],
+['Ecolink','ECO','929003550821','929003550821','Ecolink LEDtube 1200mm 18W 765 T8 ID',31164,null,'20 PCE','ECO']
+].map(r=>({brand:r[0],sheet:r[1],code:r[2],ccode:r[3],barcode:'',desc:r[4],toko:r[5],retail:r[6],box:r[7],cat:r[8],note:''}));
+
+let products=load(LS.prod,null), orders=load(LS.ord,[]), meta=load(LS.meta,{});
+let settings=Object.assign({company:'',waAdmin:'',ppn:0,ecoMarkup:0,footer:'Terima kasih.'},load(LS.set,{}));
+if(!products||!products.length){products=SAMPLE;meta={sample:true,sheets:[]};}
+let prodMap=new Map();
+function buildMap(){
+  prodMap=new Map();
+  products.forEach(p=>{p._h=[p.code,p.ccode,p.barcode,p.desc,p.cat,p.sheet].join(' ').toLowerCase();prodMap.set(p.brand+'|'+p.code,p)});
+}
+buildMap();
+
+/* ===== Harga & hitung ===== */
+function priceOf(p,type){
+  if(type==='retail'){
+    if(p.retail!=null)return p.retail;
+    return (p.toko||0)*(1+num(settings.ecoMarkup)/100);
+  }
+  return p.toko!=null?p.toko:(p.retail||0);
+}
+const netPrice=it=>num(it.price)*(1-num(it.d1)/100)*(1-num(it.d2)/100);
+const lineTotal=it=>netPrice(it)*num(it.qty);
+function orderTotals(o){
+  const sub=o.items.reduce((s,it)=>s+lineTotal(it),0);
+  const ppn=sub*num(o.ppn)/100;
+  return {sub,ppn,grand:sub+ppn};
+}
+function genNo(date){
+  const pre='SO-'+(date||todayStr()).slice(0,7).replace('-','')+'-';
+  let mx=0;orders.forEach(o=>{if(o.no&&o.no.startsWith(pre))mx=Math.max(mx,parseInt(o.no.slice(pre.length))||0)});
+  return pre+String(mx+1).padStart(4,'0');
+}
+
+/* ===== Navigasi ===== */
+function go(p){
+  document.querySelectorAll('main>section').forEach(s=>s.hidden=s.id!=='p-'+p);
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.p===p));
+  ({order:renderOrderPage,hist:renderHist,rep:renderRep,data:renderData})[p]();
+  window.scrollTo(0,0);
+}
+$('#nav').addEventListener('click',e=>{if(e.target.dataset.p)go(e.target.dataset.p)});
+
+/* ===== ORDER BARU ===== */
+function newOrder(){return {id:null,no:'',date:todayStr(),customer:'',phone:'',address:'',priceType:'toko',items:[],note:'',ppn:num(settings.ppn)}}
+let cur=newOrder();
+
+function renderOrderPage(){
+  $('#emptyWarn').hidden=products.length>0;
+  $('#orderTitle').textContent=cur.id?('Edit Order '+cur.no):'Data Order Baru';
+  $('#f-no').value=cur.no;$('#f-date').value=cur.date;$('#f-customer').value=cur.customer;
+  $('#f-phone').value=cur.phone;$('#f-address').value=cur.address;$('#f-type').value=cur.priceType;
+  $('#f-ppn').value=cur.ppn;$('#f-note').value=cur.note;
+  $('#btnDel').hidden=!cur.id;
+  fillCats();renderResults();renderItems();
+}
+function readForm(){
+  cur.date=$('#f-date').value;cur.customer=$('#f-customer').value;cur.phone=$('#f-phone').value;
+  cur.address=$('#f-address').value;cur.ppn=num($('#f-ppn').value);cur.note=$('#f-note').value;
+  updateTotals();
+}
+$('#orderInfo').addEventListener('input',readForm);
+$('#f-type').addEventListener('change',()=>{
+  cur.priceType=$('#f-type').value;repriceCur();renderItems();renderResults();
+});
+function repriceCur(){
+  cur.items.forEach(it=>{const p=prodMap.get(it.brand+'|'+it.code);if(p)it.price=priceOf(p,cur.priceType)});
+}
+function fillCats(){
+  const b=$('#s-brand').value,sel=$('#s-cat'),prev=sel.value;
+  const cats=[...new Set(products.filter(p=>!b||p.brand===b).map(p=>p.cat).filter(Boolean))].sort();
+  sel.innerHTML='<option value="">Semua kategori</option>'+cats.map(c=>`<option>${esc(c)}</option>`).join('');
+  sel.value=cats.includes(prev)?prev:'';
+}
+$('#s-brand').addEventListener('change',()=>{fillCats();renderResults()});
+$('#s-cat').addEventListener('change',renderResults);
+$('#s-q').addEventListener('input',renderResults);
+
+function renderResults(){
+  const b=$('#s-brand').value,c=$('#s-cat').value,toks=$('#s-q').value.toLowerCase().split(/\s+/).filter(Boolean);
+  const all=products.filter(p=>(!b||p.brand===b)&&(!c||p.cat===c)&&toks.every(t=>p._h.includes(t)));
+  const shown=all.slice(0,50);
+  $('#results').innerHTML=shown.length?shown.map(p=>`<div data-k="${esc(p.brand+'|'+p.code)}" onclick="addItem(this.dataset.k)">
+    <span><span class="tag ${p.brand==='Ecolink'?'e':'p'}">${esc(p.brand)}</span> <b>${esc(p.desc)}</b><br><span class="muted">${esc(p.code)} · ${esc(p.cat||'')} · ${esc(p.box||'')}</span></span>
+    <span class="r"><b>${fmt(priceOf(p,cur.priceType))}</b><br><span class="muted">+ tambah</span></span></div>`).join('')
+    :'<div class="muted">Produk tidak ditemukan.</div>';
+  $('#s-hint').textContent=(all.length>50?`Menampilkan 50 dari ${all.length} produk. Persempit pencarian. `:'')+
+    (cur.priceType==='retail'&&b!=='Philips'?'Ecolink tidak punya harga retail di Excel, jadi dipakai harga + markup (lihat Pengaturan).':'');
+}
+function addItem(key){
+  const p=prodMap.get(key);if(!p)return;
+  const ex=cur.items.find(i=>i.brand===p.brand&&i.code===p.code);
+  if(ex)ex.qty=num(ex.qty)+1;
+  else cur.items.push({brand:p.brand,code:p.code,desc:p.desc,qty:1,price:priceOf(p,cur.priceType),d1:num($('#s-d1').value),d2:num($('#s-d2').value)});
+  renderItems();toast('Ditambahkan: '+p.desc);
+}
+function setItem(i,k,v){cur.items[i][k]=Math.max(0,num(v));updateTotals()}
+function delItem(i){cur.items.splice(i,1);renderItems()}
+function renderItems(){
+  const tb=$('#items');
+  tb.innerHTML=cur.items.length?cur.items.map((it,i)=>`<tr>
+    <td>${i+1}</td>
+    <td><b>${esc(it.desc)}</b><br><span class="muted">${esc(it.code)}</span> <span class="tag ${it.brand==='Ecolink'?'e':'p'}">${esc(it.brand)}</span></td>
+    <td class="r">${fmt(it.price)}</td>
+    <td><input type="number" min="0" max="100" step="0.1" value="${it.d1}" oninput="setItem(${i},'d1',this.value)"></td>
+    <td><input type="number" min="0" max="100" step="0.1" value="${it.d2}" oninput="setItem(${i},'d2',this.value)"></td>
+    <td><input type="number" min="1" step="1" value="${it.qty}" oninput="setItem(${i},'qty',this.value)"></td>
+    <td class="r" id="lt-${i}">${fmt(lineTotal(it))}</td>
+    <td><button class="x" onclick="delItem(${i})" title="Hapus item">✕</button></td></tr>`).join('')
+    :'<tr><td colspan="8" class="muted">Belum ada item. Cari produk di atas lalu klik untuk menambahkan.</td></tr>';
+  updateTotals();
+}
+function updateTotals(){
+  cur.items.forEach((it,i)=>{const e=$('#lt-'+i);if(e)e.textContent=fmt(lineTotal(it))});
+  const t=orderTotals(cur);
+  $('#t-sub').textContent=fmt(t.sub);$('#t-ppn').textContent=fmt(t.ppn);$('#t-grand').textContent=fmt(t.grand);
+}
+function saveOrder(){
+  readForm();
+  if(!cur.customer.trim()){alert('Isi nama pelanggan / toko terlebih dahulu.');return false}
+  if(!cur.items.length){alert('Tambahkan minimal 1 item.');return false}
+  const o=JSON.parse(JSON.stringify(cur));
+  if(!o.id)o.id=uid();
+  if(!o.no)o.no=genNo(o.date);
+  o.updated=new Date().toISOString();
+  const i=orders.findIndex(x=>x.id===o.id);
+  if(i>=0)orders[i]=o;else orders.unshift(o);
+  if(!store(LS.ord,orders))return false;
+  cur=JSON.parse(JSON.stringify(o));
+  $('#f-no').value=cur.no;$('#orderTitle').textContent='Edit Order '+cur.no;$('#btnDel').hidden=false;
+  toast('Order '+cur.no+' tersimpan');
+  return true;
+}
+function resetOrder(){
+  if(cur.items.length&&!confirm('Kosongkan form dan mulai order baru?'))return;
+  cur=newOrder();renderOrderPage();
+}
+function deleteOrder(id){
+  const o=orders.find(x=>x.id===id);if(!o)return;
+  if(!confirm('Hapus order '+o.no+' ('+o.customer+')?'))return;
+  orders=orders.filter(x=>x.id!==id);store(LS.ord,orders);
+  if(cur.id===id)cur=newOrder();
+  toast('Order dihapus');
+  if(!$('#p-hist').hidden)renderHist();else renderOrderPage();
+}
+
+/* ===== WhatsApp ===== */
+function waText(o){
+  const t=orderTotals(o);
+  let s=(settings.company?'*'+settings.company+'*\n':'')+'*ORDER '+(o.no||'(belum disimpan)')+'*\n';
+  s+='Tanggal: '+o.date+'\nPelanggan: '+o.customer+'\n';
+  if(o.address)s+='Alamat: '+o.address+'\n';
+  s+='Harga: '+(o.priceType==='retail'?'Retail':'Harga ke Toko')+'\n------------------\n';
+  o.items.forEach((it,i)=>{
+    const d=(num(it.d1)||num(it.d2))?` (disc ${num(it.d1)}%${num(it.d2)?' + '+num(it.d2)+'%':''})`:'';
+    s+=`${i+1}. ${it.desc} [${it.code}]\n   ${it.qty} x ${fmt(netPrice(it))}${d} = ${fmt(lineTotal(it))}\n`;
+  });
+  s+='------------------\nSubtotal: '+fmt(t.sub)+'\n';
+  if(num(o.ppn))s+='PPN '+o.ppn+'%: '+fmt(t.ppn)+'\n';
+  s+='*TOTAL: '+fmt(t.grand)+'*\n';
+  if(o.note)s+='Catatan: '+o.note+'\n';
+  if(settings.footer)s+='\n'+settings.footer;
+  return s;
+}
+function sendWA(o){
+  let ph=String(o.phone||settings.waAdmin||'').replace(/\D/g,'');
+  if(ph.startsWith('0'))ph='62'+ph.slice(1);else if(ph.startsWith('8'))ph='62'+ph;
+  window.open('https://wa.me/'+ph+'?text='+encodeURIComponent(waText(o)),'_blank');
+}
+function sendFromForm(){if(saveOrder())sendWA(cur)}
+
+/* ===== RIWAYAT ===== */
+['h-q','h-month','h-brand'].forEach(id=>$('#'+id).addEventListener('input',renderHist));
+function renderHist(){
+  const q=$('#h-q').value.toLowerCase(),m=$('#h-month').value,b=$('#h-brand').value;
+  const list=orders.filter(o=>(!q||(o.no+' '+o.customer).toLowerCase().includes(q))&&(!m||(o.date||'').startsWith(m))&&(!b||o.items.some(i=>i.brand===b)))
+    .sort((a,c)=>(c.date||'').localeCompare(a.date||'')||(c.no||'').localeCompare(a.no||''));
+  let sum=0;
+  $('#h-body').innerHTML=list.length?list.map(o=>{
+    const t=orderTotals(o).grand;sum+=t;
+    const brands=[...new Set(o.items.map(i=>i.brand))].map(x=>`<span class="tag ${x==='Ecolink'?'e':'p'}">${esc(x)}</span>`).join(' ');
+    return `<tr><td><b>${esc(o.no)}</b></td><td>${esc(o.date)}</td><td>${esc(o.customer)}</td><td>${brands}</td>
+    <td>${o.priceType==='retail'?'Retail':'Toko'}</td><td class="r">${o.items.length}</td><td class="r">${fmt(t)}</td>
+    <td style="white-space:nowrap"><button class="btn" onclick="editOrder('${o.id}')">Edit</button>
+    <button class="btn g" onclick="waOrder('${o.id}')">WA</button>
+    <button class="btn d" onclick="deleteOrder('${o.id}')">Hapus</button></td></tr>`}).join('')
+    :'<tr><td colspan="8" class="muted">Belum ada order.</td></tr>';
+  $('#h-sum').textContent=list.length+' order · total '+fmt(sum);
+}
+function editOrder(id){cur=JSON.parse(JSON.stringify(orders.find(o=>o.id===id)));go('order')}
+function waOrder(id){sendWA(orders.find(o=>o.id===id))}
+
+function stamp(){return todayStr().replace(/-/g,'')}
+function exportXlsx(){
+  if(!orders.length)return alert('Belum ada order untuk diexport.');
+  const rows=[];
+  orders.forEach(o=>o.items.forEach(it=>rows.push({
+    'No Order':o.no,'Tanggal':o.date,'Pelanggan':o.customer,'No WA':o.phone,'Alamat':o.address,
+    'Jenis Harga':o.priceType==='retail'?'Retail':'Toko','PPN %':num(o.ppn),'Brand':it.brand,'12NC':String(it.code),
+    'Deskripsi':it.desc,'Qty':num(it.qty),'Harga':num(it.price),'Diskon 1 %':num(it.d1),'Diskon 2 %':num(it.d2),
+    'Subtotal':Math.round(lineTotal(it)),'Catatan':o.note})));
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),'Order');
+  XLSX.writeFile(wb,'riwayat-order-'+stamp()+'.xlsx');
+}
+function download(name,text,type){
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();
+}
+function exportJson(){download('backup-order-'+stamp()+'.json',JSON.stringify({orders,settings},null,1),'application/json')}
+
+function excelDate(v){
+  if(typeof v==='number')return new Date(Math.round((v-25569)*86400000)).toISOString().slice(0,10);
+  const s=String(v||'').trim();if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.slice(0,10);
+  const m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);if(m)return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  const d=new Date(s);return isNaN(d)?todayStr():d.toISOString().slice(0,10);
+}
+$('#h-imp').addEventListener('change',async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  try{
+    let imp=[];
+    if(/\.json$/i.test(f.name)){
+      const j=JSON.parse(await f.text());imp=Array.isArray(j)?j:(j.orders||[]);
+    }else{
+      const wb=XLSX.read(await f.arrayBuffer(),{type:'array'});
+      const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames.includes('Order')?'Order':wb.SheetNames[0]],{defval:''});
+      const g=new Map();
+      rows.forEach(r=>{
+        const desc=String(r['Deskripsi']||'').trim();if(!desc&&!r['12NC'])return;
+        const no=String(r['No Order']||'').trim()||('TMP-'+String(r['Pelanggan']||'')+'-'+r['Tanggal']);
+        if(!g.has(no))g.set(no,{id:null,no:String(r['No Order']||'').trim(),date:excelDate(r['Tanggal']),customer:String(r['Pelanggan']||''),
+          phone:String(r['No WA']||''),address:String(r['Alamat']||''),priceType:/retail/i.test(r['Jenis Harga'])?'retail':'toko',
+          ppn:num(r['PPN %']),note:String(r['Catatan']||''),items:[]});
+        const code=String(r['12NC']).trim(),p=prodMap.get(String(r['Brand']||'')+'|'+code);
+        g.get(no).items.push({brand:String(r['Brand']||(p&&p.brand)||'Philips'),code,desc:desc||(p?p.desc:''),qty:num(r['Qty'])||1,
+          price:num(r['Harga']),d1:num(r['Diskon 1 %']),d2:num(r['Diskon 2 %'])});
+      });
+      imp=[...g.values()];
+    }
+    imp=imp.filter(o=>o&&Array.isArray(o.items)&&o.items.length);
+    if(!imp.length)return alert('Tidak ada order yang terbaca dari file.');
+    let upd=0,add=0;
+    imp.forEach(o=>{
+      const i=o.no?orders.findIndex(x=>x.no===o.no):-1;
+      o.priceType=o.priceType==='retail'?'retail':'toko';
+      if(i>=0){o.id=orders[i].id;upd++}else{o.id=o.id&&!orders.some(x=>x.id===o.id)?o.id:uid();add++}
+    });
+    if(!confirm(`Import ${imp.length} order: ${add} baru, ${upd} akan menimpa order dengan No. Order sama. Lanjutkan?`))return;
+    imp.forEach(o=>{
+      if(!o.no)o.no=genNo(o.date);
+      const i=orders.findIndex(x=>x.id===o.id);if(i>=0)orders[i]=o;else orders.push(o);
+    });
+    store(LS.ord,orders);renderHist();toast(`Import selesai: ${add} baru, ${upd} diperbarui`);
+  }catch(err){alert('Gagal import: '+err.message)}
+});
+
+/* ===== PENJUALAN ===== */
+$('#r-year').addEventListener('change',renderRep);
+function renderRep(){
+  const years=[...new Set(orders.map(o=>(o.date||'').slice(0,4)).filter(Boolean))];
+  const cy=String(new Date().getFullYear());if(!years.includes(cy))years.push(cy);
+  years.sort().reverse();
+  const sel=$('#r-year'),prev=sel.value;
+  sel.innerHTML=years.map(y=>`<option>${y}</option>`).join('');
+  sel.value=years.includes(prev)?prev:years[0];
+  const y=sel.value;
+  const m=Array.from({length:12},()=>({n:0,pq:0,pv:0,eq:0,ev:0}));
+  orders.filter(o=>(o.date||'').startsWith(y)).forEach(o=>{
+    const k=+o.date.slice(5,7)-1;if(k<0||k>11)return;m[k].n++;
+    o.items.forEach(it=>{
+      if(it.brand==='Ecolink'){m[k].eq+=num(it.qty);m[k].ev+=lineTotal(it)}
+      else{m[k].pq+=num(it.qty);m[k].pv+=lineTotal(it)}
+    });
+  });
+  const tot=m.reduce((a,r)=>({n:a.n+r.n,pq:a.pq+r.pq,pv:a.pv+r.pv,eq:a.eq+r.eq,ev:a.ev+r.ev}),{n:0,pq:0,pv:0,eq:0,ev:0});
+  $('#r-body').innerHTML=m.map((r,i)=>`<tr><td>${MONTHS[i]}</td><td class="r">${r.n}</td><td class="r">${r.pq}</td><td class="r">${fmt(r.pv)}</td><td class="r">${r.eq}</td><td class="r">${fmt(r.ev)}</td><td class="r"><b>${fmt(r.pv+r.ev)}</b></td></tr>`).join('')+
+    `<tr style="font-weight:700;background:#f8fafc"><td>Total ${y}</td><td class="r">${tot.n}</td><td class="r">${tot.pq}</td><td class="r">${fmt(tot.pv)}</td><td class="r">${tot.eq}</td><td class="r">${fmt(tot.ev)}</td><td class="r">${fmt(tot.pv+tot.ev)}</td></tr>`;
+  const mx=Math.max(1,...m.map(r=>Math.max(r.pv,r.ev)));
+  $('#r-chart').innerHTML=m.map((r,i)=>`<div class="col"><div class="bars">
+    <i style="background:var(--b);height:${r.pv/mx*100}%" title="Philips ${fmt(r.pv)}"></i>
+    <i style="background:var(--g);height:${r.ev/mx*100}%" title="Ecolink ${fmt(r.ev)}"></i></div><small>${MONTHS[i].slice(0,3)}</small></div>`).join('');
+}
+
+/* ===== DATA & PENGATURAN ===== */
+function toPrice(v){
+  if(v==null||v==='')return null;
+  if(typeof v==='number')return v;
+  const n=parseFloat(String(v).replace(/[^\d.\-]/g,''));return isNaN(n)?null:n;
+}
+const nm=c=>String(c==null?'':c).replace(/\s+/g,' ').trim().toUpperCase();
+function parseWorkbook(wb){
+  const list=[],info={sheets:[],eff:''};
+  wb.SheetNames.forEach(name=>{
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,raw:true,defval:null});
+    let hr=-1;
+    for(let i=0;i<Math.min(rows.length,25);i++){
+      if((rows[i]||[]).some(c=>c!=null&&/^12\s*NC$/.test(nm(c)))){hr=i;break}
+    }
+    if(hr<0)return;
+    if(!info.eff){
+      for(let i=0;i<hr;i++)(rows[i]||[]).forEach(c=>{if(!info.eff&&typeof c==='string'&&/berlaku/i.test(c))info.eff=c.replace(/\s+/g,' ').trim()});
+    }
+    const ci={};
+    (rows[hr]||[]).forEach((c,j)=>{
+      const h=nm(c);if(!h)return;
+      if(/^12\s*NC$/.test(h))ci.code=j;
+      else if(/COMMERCIAL/.test(h))ci.ccode=j;
+      else if(/BARCODE/.test(h))ci.barcode=j;
+      else if(/DESCRIPTION/.test(h))ci.desc=j;
+      else if(/HARGA KE TOKO/.test(h))ci.toko=j;
+      else if(/HARGA RETAIL/.test(h))ci.retail=j;
+      else if(/HARGA/.test(h))ci.single=j;
+      else if(/QTY PER BOX|MOQ \(PCE\)/.test(h))ci.box=j;
+      else if(/^MOQ$/.test(h))ci.moq=j;
+      else if(/CATEGORY/.test(h))ci.cat=j;
+      else if(/KETERANGAN/.test(h))ci.note=j;
+    });
+    if(ci.barcode==null&&rows[hr+1]){(rows[hr+1]).forEach((c,j)=>{if(typeof c==='string'&&/BARCODE/i.test(c))ci.barcode=j})}
+    if(ci.code==null||ci.desc==null)return;
+    if(ci.toko==null&&ci.retail==null&&ci.single!=null)ci.toko=ci.single;
+    const brandSheet=/(^|[^A-Za-z])ECO([^A-Za-z]|$)/i.test(name)?'Ecolink':'Philips';
+    let section='',count=0;
+    for(let i=hr+1;i<rows.length;i++){
+      const r=rows[i]||[];
+      const codeRaw=r[ci.code],desc=r[ci.desc];
+      if(codeRaw==null||String(codeRaw).trim()===''){
+        const filled=r.filter(c=>c!=null&&String(c).trim()!=='');
+        if(filled.length===1&&typeof r[0]==='string')section=r[0].replace(/\s+/g,' ').trim();
+        continue;
+      }
+      const code=String(codeRaw).trim();
+      if(/12\s*NC/i.test(code)||desc==null||String(desc).trim()==='')continue;
+      const toko=ci.toko!=null?toPrice(r[ci.toko]):null,retail=ci.retail!=null?toPrice(r[ci.retail]):null;
+      if(toko==null&&retail==null)continue;
+      const d=String(desc).replace(/\s+/g,' ').trim();
+      const brand=(brandSheet==='Ecolink'||/^ecolink/i.test(d))?'Ecolink':'Philips';
+      const bx=ci.box!=null?r[ci.box]:null,mq=ci.moq!=null?r[ci.moq]:null;
+      list.push({brand,sheet:name,code,ccode:ci.ccode!=null&&r[ci.ccode]!=null?String(r[ci.ccode]).trim():'',
+        barcode:ci.barcode!=null&&r[ci.barcode]!=null?String(r[ci.barcode]).trim():'',desc:d,toko,retail,
+        box:bx!=null?String(bx):(mq!=null?'MOQ '+mq:''),
+        cat:(ci.cat!=null&&r[ci.cat]?String(r[ci.cat]).trim():'')||section||name,
+        note:ci.note!=null&&r[ci.note]?String(r[ci.note]).trim():''});
+      count++;
+    }
+    info.sheets.push({name,brand:brandSheet,count});
+  });
+  const m=new Map();list.forEach(p=>m.set(p.brand+'|'+p.code,p));
+  return {list:[...m.values()],info};
+}
+$('#d-imp').addEventListener('change',async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;
+  try{
+    const wb=XLSX.read(await f.arrayBuffer(),{type:'array'});
+    const {list,info}=parseWorkbook(wb);
+    if(!list.length)return alert('Tidak ada produk yang terbaca. Pastikan file memiliki kolom 12NC, DESCRIPTION, dan REKOM. HARGA.');
+    const old=new Map(products.map(p=>[p.brand+'|'+p.code,p]));
+    const keys=new Set(list.map(p=>p.brand+'|'+p.code));
+    let nw=0,ch=0;
+    list.forEach(p=>{const o=old.get(p.brand+'|'+p.code);if(!o)nw++;else if(o.toko!==p.toko||o.retail!==p.retail)ch++});
+    const gone=[...old.keys()].filter(k=>!keys.has(k)).length;
+    const rep=$('#d-reprice').checked;
+    const ph=list.filter(p=>p.brand==='Philips').length,ec=list.length-ph;
+    if(!confirm(`File: ${f.name}\nProduk terbaca: ${list.length} (Philips ${ph}, Ecolink ${ec})\nBaru: ${nw} · Harga berubah: ${ch} · Tidak ada lagi: ${gone}\n${rep?'Harga di order tersimpan akan diperbarui.':'Order tersimpan tidak diubah.'}\n\nLanjutkan import?`))return;
+    products=list;buildMap();
+    meta={file:f.name,at:new Date().toLocaleString('id-ID'),eff:info.eff,count:list.length,sheets:info.sheets};
+    store(LS.prod,products);store(LS.meta,meta);
+    let oc=0,ic=0;
+    if(rep){
+      orders.forEach(o=>{let c=false;o.items.forEach(it=>{
+        const p=prodMap.get(it.brand+'|'+it.code);if(!p)return;
+        const np=priceOf(p,o.priceType);
+        if(Math.abs(np-num(it.price))>0.001||it.desc!==p.desc){it.price=np;it.desc=p.desc;ic++;c=true}
+      });if(c)oc++});
+      store(LS.ord,orders);
+    }
+    cur.items.forEach(it=>{const p=prodMap.get(it.brand+'|'+it.code);if(p){it.price=priceOf(p,cur.priceType);it.desc=p.desc}});
+    renderData();toast(`Database diperbarui: ${list.length} produk`+(rep?` · ${ic} item di ${oc} order diperbarui`:''));
+  }catch(err){alert('Gagal membaca file: '+err.message)}
+});
+function renderData(){
+  $('#d-info').innerHTML=meta.sample?'<b>Saat ini memakai 10 produk contoh.</b> Import file Price Waterfall untuk data lengkap.'
+    :`File: <b>${esc(meta.file||'-')}</b> · diimport ${esc(meta.at||'-')} · ${esc(meta.eff||'')}<br>Total ${products.length} produk`;
+  const sh=meta.sheets&&meta.sheets.length?meta.sheets:[...products.reduce((m,p)=>{const k=p.sheet+'|'+p.brand;m.set(k,(m.get(k)||0)+1);return m},new Map())].map(([k,v])=>({name:k.split('|')[0],brand:k.split('|')[1],count:v}));
+  $('#d-sheets').innerHTML=sh.map(s=>`<tr><td>${esc(s.name)}</td><td><span class="tag ${s.brand==='Ecolink'?'e':'p'}">${esc(s.brand)}</span></td><td class="r">${s.count}</td></tr>`).join('');
+  $('#c-company').value=settings.company;$('#c-wa').value=settings.waAdmin;$('#c-ppn').value=settings.ppn;
+  $('#c-eco').value=settings.ecoMarkup;$('#c-foot').value=settings.footer;
+  renderProdList();
+}
+$('#d-q').addEventListener('input',renderProdList);
+function renderProdList(){
+  const toks=$('#d-q').value.toLowerCase().split(/\s+/).filter(Boolean);
+  const all=products.filter(p=>toks.every(t=>p._h.includes(t)));
+  $('#d-prod').innerHTML=all.slice(0,100).map(p=>`<tr><td><span class="tag ${p.brand==='Ecolink'?'e':'p'}">${esc(p.brand)}</span></td><td>${esc(p.code)}</td><td>${esc(p.desc)}</td><td>${esc(p.cat)}</td>
+    <td class="r">${p.toko!=null?fmt(p.toko):'-'}</td><td class="r">${p.retail!=null?fmt(p.retail):'-'}</td><td class="muted">${esc(p.note)}</td></tr>`).join('');
+  $('#d-cnt').textContent=`Menampilkan ${Math.min(100,all.length)} dari ${all.length} produk`;
+}
+function saveSettings(){
+  settings={company:$('#c-company').value,waAdmin:$('#c-wa').value,ppn:num($('#c-ppn').value),ecoMarkup:num($('#c-eco').value),footer:$('#c-foot').value};
+  store(LS.set,settings);toast('Pengaturan disimpan');
+}
+function clearOrders(){
+  if(!orders.length)return;
+  if(!confirm('Hapus SEMUA order? Lakukan backup terlebih dahulu. Tindakan ini tidak bisa dibatalkan.'))return;
+  orders=[];store(LS.ord,orders);cur=newOrder();toast('Semua order dihapus');
+}
+
+go('order');
+</script>
+</body>
+</html>
